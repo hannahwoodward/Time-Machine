@@ -31,7 +31,7 @@
 		const title_element = document.querySelector( 'title' );
 		let last_load_url = null;
 
-		window.history.replaceState( { receptacle: inputs.default_ajax_receptacle_id }, null, null );
+		window.history.replaceState( { receptacle: inputs.default_ajax_receptacle_id, source: inputs.default_ajax_receptacle_id }, null, null );
 
 		window.addEventListener( 'popstate', handleStateChange );
 		window.addEventListener( 'click', handlePotentialTriggerClick );
@@ -111,13 +111,24 @@
 				receptacle_id = inputs.default_ajax_receptacle_id;
 				receptacle_element = default_ajax_receptacle;
 			}
-			receptacle_element.innerHTML = frag.querySelector( '#' + source_id ).innerHTML;
-			const metadata_element = receptacle_element.firstElementChild;
+			frag.innerHTML = data;
+			if ( inputs.beforeNewPageRender ) {
+				inputs.beforeNewPageRender( receptacle_element, frag, () => {
+					renderPage( receptacle_element, source_id, frag );
+				} );
+				return;
+			}
+			renderPage( receptacle_element, source_id, frag );
+		}
+
+		function renderPage( receptacle, source_id, frag ) {
+			receptacle.innerHTML = frag.querySelector( '#' + source_id ).innerHTML;
+			const metadata_element = receptacle.firstElementChild;
 			const title = metadata_element.getAttribute( 'data-tm-title' );
 			if ( title !== null ) {
 				setTitle( title );
 			}
-			runPageScripts( receptacle_element );
+			runPageScripts( receptacle );
 			if ( inputs.afterNewPageLoad ) {
 				debugLog( 'Running "afterNewPageLoad" callback' );
 				let page_data_parsed = null;
@@ -129,7 +140,7 @@
 						debugLog( 'Malformed JSON in page data attribute, ignoring', 'warn' );
 					}
 				}
-				inputs.afterNewPageLoad( receptacle_id, page_data_parsed );
+				inputs.afterNewPageLoad( receptacle.id, page_data_parsed );
 			}
 			debugLog( 'Done' );
 			debugLog( '------' );
